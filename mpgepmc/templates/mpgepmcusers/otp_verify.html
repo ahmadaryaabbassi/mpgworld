@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>OTP verify - MPGEPMC</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style> .error{color:red} .ok{color:green} .disabled {opacity:0.6; pointer-events:none;} </style>
+</head>
+<body>
+  <h1>OTP verification</h1>
+
+  {% if messages %}
+    <ul>
+      {% for m in messages %}
+        <li style="color:red">{{ m }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if user %}
+    <p>OTP has been sent to <strong>{{ user.email }}</strong>. It is valid for {{ 30 }} minutes. You have 3 attempts.</p>
+
+    {% if otp_remaining_seconds %}
+      <p id="countdown"></p>
+      <script>
+        (function startCountdown(secs){
+          function update(){
+            if(secs <= 0){
+              $("#countdown").text("Expired — you may request a new OTP now.");
+              $("#resend-link").removeClass('disabled');
+              return;
+            }
+            let m = Math.floor(secs/60);
+            let s = secs % 60;
+            $("#countdown").text(m + "m " + (s<10? "0":"") + s + "s remaining");
+            secs -= 1;
+            setTimeout(update, 1000);
+          }
+          // initially disable resend link if present
+          $(function(){
+            $("#resend-link").addClass('disabled');
+            update();
+          });
+        })({{ otp_remaining_seconds }});
+      </script>
+    {% else %}
+      <p>No active OTP — you may request one.</p>
+    {% endif %}
+  {% endif %}
+
+  <form method="post" action="{% url 'mpgepmcusers:otp_verify' %}">
+    {% csrf_token %}
+    <label>Enter OTP: <input type="text" name="code" maxlength="6" required></label><br>
+    <button type="submit">Verify</button>
+  </form>
+
+  <p><a id="resend-link" href="{% url 'mpgepmcusers:resend_otp' %}">Resend OTP</a> (resend disabled while previous OTP is active)</p>
+  <p><a href="{% url 'mpgepmcusers:signin' %}">Back to sign in</a></p>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sign up - MPGEPMC</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style> .error{color:red} .ok{color:green} </style>
+</head>
+<body>
+  <h1>Sign up</h1>
+  <form id="signup-form" method="post" action="{% url 'mpgepmcusers:signup' %}">
+    {% csrf_token %}
+    <label>First name*: <input type="text" name="first_name" id="first_name"></label> <span id="first_name_msg"></span><br>
+    <label>Middle name (optional): <input type="text" name="middle_name" id="middle_name"></label> <br>
+    <label>Last name*: <input type="text" name="last_name" id="last_name"></label> <span id="last_name_msg"></span><br>
+    <label>Date of birth*: <input type="date" name="dob" id="dob"></label> <span id="dob_msg"></span><br>
+    <label>Gender*:
+      <select name="gender" id="gender">
+        <option value="">-- Select --</option>
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+        <option value="other">Other</option>
+      </select>
+    </label><br>
+    <div id="gender_other_div" style="display:none">
+      <label>Please describe: <input type="text" name="gender_other_text" id="gender_other_text"></label><br>
+    </div>
+    <label>Mobile* (e.g. +92303XXXXXXX): <input type="text" name="mobile" id="mobile"></label> <span id="mobile_msg"></span><br>
+    <label>Email* : <input type="email" name="email" id="email"></label> <span id="email_msg"></span><br>
+    <label>Password*: <input type="password" name="password" id="password"></label> <span id="password_msg"></span><br>
+    <label>Confirm Password*: <input type="password" name="confirm_password" id="confirm_password"></label> <span id="confirm_msg"></span><br>
+    <button type="submit" id="submit-btn" disabled>Sign up</button>
+  </form>
+
+  <script>
+    const ajaxUrl = "{% url 'mpgepmcusers:ajax_validate_field' %}";
+    let fieldValidity = {
+      first_name: false,
+      last_name: false,
+      dob: false,
+      mobile: false,
+      email: false,
+      password: false,
+      confirm_password: false,
+      gender: false
+    };
+
+    function toggleSubmit() {
+      const allValid = Object.values(fieldValidity).every(v => v === true);
+      $("#submit-btn").prop("disabled", !allValid);
+    }
+
+    function ajaxValidate(field, value, targetSpan) {
+      $.post(ajaxUrl, {field: field, value: value, csrfmiddlewaretoken: '{{ csrf_token }}'})
+        .done(function(data){
+          if(data.valid){
+            $(targetSpan).text('OK').removeClass('error').addClass('ok');
+            fieldValidity[field] = true;
+          } else {
+            $(targetSpan).text(data.error).removeClass('ok').addClass('error');
+            fieldValidity[field] = false;
+          }
+          toggleSubmit();
+        });
+    }
+
+    $(function(){
+      $('#first_name').on('blur keyup', function(){
+        ajaxValidate('first_name', $(this).val(), '#first_name_msg');
+      });
+      $('#last_name').on('blur keyup', function(){
+        ajaxValidate('last_name', $(this).val(), '#last_name_msg');
+      });
+      $('#dob').on('blur change', function(){
+        ajaxValidate('dob', $(this).val(), '#dob_msg');
+      });
+      $('#mobile').on('blur keyup', function(){
+        ajaxValidate('mobile', $(this).val(), '#mobile_msg');
+      });
+      $('#email').on('blur keyup', function(){
+        ajaxValidate('email', $(this).val(), '#email_msg');
+      });
+      $('#password').on('blur keyup', function(){
+        ajaxValidate('password', $(this).val(), '#password_msg');
+      });
+      $('#confirm_password').on('blur keyup', function(){
+        if($('#password').val() !== $(this).val()){
+          $('#confirm_msg').text('Passwords do not match').addClass('error').removeClass('ok');
+          fieldValidity['confirm_password'] = false;
+        } else {
+          $('#confirm_msg').text('OK').addClass('ok').removeClass('error');
+          fieldValidity['confirm_password'] = true;
+        }
+        toggleSubmit();
+      });
+      $('#gender').on('change', function(){
+        if($(this).val() === 'other'){
+          $('#gender_other_div').show();
+        } else {
+          $('#gender_other_div').hide();
+        }
+        fieldValidity['gender'] = $(this).val() !== "";
+        toggleSubmit();
+      });
+    });
+  </script>
+</body>
+</html>
